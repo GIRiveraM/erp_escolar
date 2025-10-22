@@ -54,7 +54,7 @@ Un sistema ERP completo para la gestión escolar que incluye autenticación por 
 
 ### 1. Clonar el repositorio
 ```bash
-git clone <tu-repositorio>
+git clone https://github.com/GIRiveraM/erp_escolar
 cd erp-escolar
 ```
 
