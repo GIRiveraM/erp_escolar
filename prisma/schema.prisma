@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones específicas por rol
+  student   Student?
+  parent    Parent?
+  teacher   Teacher?
+  admin     Admin?
+
+  @@map("users")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName   String
+  lastName    String
+  studentId   String   @unique
+  grade       String
+  section     String
+  birthDate   DateTime
+  address     String?
+  phone       String?
+  
+  // Relaciones
+  parent      Parent?  @relation(fields: [parentId], references: [id])
+  parentId    String?
+  enrollments Enrollment[]
+  grades      Grade[]
+  payments    Payment[]
+  messages    Message[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("students")
+}
+
+model Parent {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName String
+  lastName  String
+  phone     String
+  address   String?
+  
+  // Relaciones
+  students  Student[]
+  messages  Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("parents")
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName String
+  lastName  String
+  subject   String
+  phone     String?
+  
+  // Relaciones
+  classes   Class[]
+  grades    Grade[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("teachers")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName String
+  lastName  String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  grade       String
+  section     String
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  
+  // Relaciones
+  enrollments Enrollment[]
+  schedules   Schedule[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, classId])
+  @@map("enrollments")
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  
+  subject   String
+  grade     Float
+  type      GradeType
+  comments  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("grades")
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  
+  dayOfWeek Int      // 0 = Domingo, 1 = Lunes, etc.
+  startTime String   // HH:MM format
+  endTime   String   // HH:MM format
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("schedules")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  studentId   String
+  student     Student       @relation(fields: [studentId], references: [id])
+  
+  amount      Float
+  month       Int
+  year        Int
+  status      PaymentStatus @default(PENDING)
+  method      PaymentMethod?
+  stripeId    String?       @unique
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  studentId String
+  student   Student     @relation(fields: [studentId], references: [id])
+  parentId  String
+  parent    Parent      @relation(fields: [parentId], references: [id])
+  
+  type      MessageType
+  content   String
+  status    MessageStatus @default(PENDING)
+  sentAt    DateTime?
+  
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("messages")
+}
+
+// Enums
+enum UserRole {
+  STUDENT
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum GradeType {
+  EXAM
+  HOMEWORK
+  PROJECT
+  PARTICIPATION
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  STRIPE
+}
+
+enum MessageType {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+
+
